@@ -116,6 +116,20 @@ namespace BattleCity
                 return false;
             }
         }
+
+
+        public static IEnumerable<T> Random<T>(this IReadOnlyCollection<T> collection)
+        {
+            var tmp = new List<T>(collection);
+            T item;
+
+            do
+            {
+                item = tmp[UnityEngine.Random.Range(0, tmp.Count)];
+                tmp.Remove(item);
+                yield return item;
+            } while (tmp.Count != 0);
+        }
     }
 
 
@@ -164,9 +178,7 @@ namespace BattleCity
     public sealed class ObjectPool<T> : IEnumerable<T> where T : Component
     {
         [SerializeField] private T prefab;
-        [SerializeField] private Transform visibleAnchor;
-        [Tooltip("Phải tắt hiddenAnchor !")]
-        [SerializeField] private Transform hiddenAnchor;
+        [SerializeField] private Transform visibleAnchor, hiddenAnchor;
         [SerializeField] private List<T> hiddenObj = new();
         private readonly List<T> visibleObj = new();
         public GameObject gameObject { get; private set; }
@@ -175,84 +187,71 @@ namespace BattleCity
         private ObjectPool() { }
 
 
-        public ObjectPool(T prefab)
-        {
-            gameObject = new() { name = $"{(this.prefab = prefab).name} Pool" };
-            (hiddenAnchor = new GameObject { name = "Hidden" }.transform).SetParent(gameObject.transform);
-            hiddenAnchor.gameObject.SetActive(false);
-            (visibleAnchor = new GameObject { name = "Visible" }.transform).SetParent(gameObject.transform);
-        }
-
-
-        public ObjectPool(T prefab, Transform hiddenAnchor = null, Transform visibleAnchor = null)
+        public ObjectPool(T prefab, GameObject gameObject = null, Transform hiddenAnchor = null, Transform visibleAnchor = null)
         {
             this.prefab = prefab;
-            this.hiddenAnchor = hiddenAnchor;
-            this.visibleAnchor = visibleAnchor;
+            if (gameObject) this.gameObject = gameObject;
+            else this.gameObject = new() { name = $"{(this.prefab = prefab).name} Pool" };
+
+            if (hiddenAnchor) this.hiddenAnchor = hiddenAnchor;
+            else (this.hiddenAnchor = new GameObject { name = "Hidden" }.transform).SetParent(gameObject.transform);
+
+            if (visibleAnchor) this.visibleAnchor = visibleAnchor;
+            else (this.visibleAnchor = new GameObject { name = "Visible" }.transform).SetParent(gameObject.transform);
         }
 
 
-        public T Get(Vector3 position = default, bool active = true)
+        public T Get(in Vector3 position = default, bool active = true)
         {
-            T item;
+            T obj;
             if (hiddenObj.Count != 0)
             {
-                item = hiddenObj[0];
+                obj = hiddenObj[0];
                 hiddenObj.RemoveAt(0);
             }
-            else if (active) item = UnityEngine.Object.Instantiate(prefab);
-            else
-            {
-                item = UnityEngine.Object.Instantiate(prefab, hiddenAnchor);
-                item.gameObject.SetActive(false);
-            }
+            else obj = UnityEngine.Object.Instantiate(prefab);
 
-            item.transform.parent = visibleAnchor;
-            visibleObj.Add(item);
-            item.transform.position = position;
-            item.gameObject.SetActive(active);
-            return item;
+            obj.transform.parent = visibleAnchor;
+            visibleObj.Add(obj);
+            obj.transform.position = position;
+            obj.gameObject.SetActive(active);
+            return obj;
         }
 
 
-        public void Recycle(T item)
+        public void Recycle(T obj)
         {
-#if DEBUG
-            if (hiddenAnchor.gameObject.activeSelf) throw new Exception("hiddenAnchor phải tắt !");
-#endif
-            item.gameObject.SetActive(false);
-            item.transform.parent = hiddenAnchor;
-            visibleObj.Remove(item);
-            hiddenObj.Add(item);
+            obj.gameObject.SetActive(false);
+            obj.transform.parent = hiddenAnchor;
+            visibleObj.Remove(obj);
+            hiddenObj.Add(obj);
         }
 
 
         public void Recycle()
         {
-#if DEBUG
-            if (hiddenAnchor.gameObject.activeSelf) throw new Exception("hiddenAnchor phải tắt !");
-#endif
             for (int i = 0; i < visibleObj.Count; ++i)
             {
-                var item = visibleObj[i];
-                item.gameObject.SetActive(false);
-                item.transform.parent = hiddenAnchor;
-                hiddenObj.Add(item);
+                var obj = visibleObj[i];
+                obj.gameObject.SetActive(false);
+                obj.transform.parent = hiddenAnchor;
+                hiddenObj.Add(obj);
             }
+
             visibleObj.Clear();
         }
 
 
-        public void DestroyGameObject(T item)
+        public void DestroyGameObject(T obj)
         {
-            visibleObj.Remove(item);
-            UnityEngine.Object.Destroy(item.gameObject);
+            visibleObj.Remove(obj);
+            UnityEngine.Object.Destroy(obj.gameObject);
         }
 
 
         public void DestroyGameObject()
         {
-            foreach (var item in visibleObj) UnityEngine.Object.Destroy(item.gameObject);
+            foreach (var obj in visibleObj) UnityEngine.Object.Destroy(obj.gameObject);
             visibleObj.Clear();
         }
 
