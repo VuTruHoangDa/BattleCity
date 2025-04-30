@@ -10,14 +10,14 @@ namespace BattleCity.Platforms
 		[SerializeField]
 		private Particle particle;
 
-		public override bool CanMove(Tank tank, Vector3 newDir) => true;
+		public override bool AllowMove(Tank tank, Vector3 newDir) => true;
 
 
 		public override bool OnCollision(Bullet bullet)
 		{
-			if (!bullet.canBurnForest) return false;
+			if (!bullet.data.canBurnForest) return false;
 
-			var block = BLOCKS[BULLET_DIR_RELATIVE_BLOCK[bullet.direction]
+			var block = BLOCKS[BULLET_DIR_RELATIVE_BLOCK[bullet.data.direction]
 				[bullet.transform.position - transform.position]];
 
 			bool collise = false;

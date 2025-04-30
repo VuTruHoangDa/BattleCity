@@ -1,9 +1,7 @@
 ﻿using Cysharp.Threading.Tasks;
-using NUnit.Framework.Constraints;
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -177,20 +175,17 @@ namespace BattleCity
 		private ObjectPool() { }
 
 
-		public ObjectPool(T prefab)
-		{
-			gameObject = new() { name = $"{(this.prefab = prefab).name} Pool" };
-			(hiddenAnchor = new GameObject { name = "Hidden" }.transform).SetParent(gameObject.transform);
-			hiddenAnchor.gameObject.SetActive(false);
-			(visibleAnchor = new GameObject { name = "Visible" }.transform).SetParent(gameObject.transform);
-		}
-
-
-		public ObjectPool(T prefab, Transform hiddenAnchor = null, Transform visibleAnchor = null)
+		public ObjectPool(T prefab, GameObject gameObject = null, Transform hiddenAnchor = null, Transform visibleAnchor = null)
 		{
 			this.prefab = prefab;
-			this.hiddenAnchor = hiddenAnchor;
-			this.visibleAnchor = visibleAnchor;
+			this.gameObject = gameObject ? gameObject : new() { name = $"{prefab.name} Pool" };
+
+			if (hiddenAnchor) this.hiddenAnchor = hiddenAnchor;
+			else (this.hiddenAnchor = new GameObject { name = "Hidden" }.transform).SetParent(this.gameObject.transform);
+			this.hiddenAnchor.gameObject.SetActive(false);
+
+			if (visibleAnchor) this.visibleAnchor = visibleAnchor;
+			else (this.visibleAnchor = new GameObject { name = "Visible" }.transform).SetParent(this.gameObject.transform);
 		}
 
 

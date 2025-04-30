@@ -12,16 +12,8 @@ namespace BattleCity.Tanks
 	[RequireComponent(typeof(SpriteRenderer), typeof(Animator))]
 	public abstract class Tank : MonoBehaviour, IBulletCollision
 	{
-		public static ReadOnlyArray<ReadOnlyArray<Tank>> array { get; private set; }
-		protected static Tank[][] Δarray;
-
-
 		public abstract Color color { get; set; }
 
-		[SerializeField] protected Asset asset;
-		/// <summary>
-		/// Không thể set khi đang Move
-		/// </summary>
 		public abstract Vector3 direction { get; set; }
 
 		public float speed { get; protected set; }
@@ -36,6 +28,9 @@ namespace BattleCity.Tanks
 		[HideInInspector]
 		protected Animator animator;
 
+		[SerializeField] protected Asset asset;
+		public static ReadOnlyArray<ReadOnlyArray<Tank>> array { get; private set; }
+		protected static Tank[][] Δarray;
 
 		[RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
 		private static void Init()
@@ -57,9 +52,10 @@ namespace BattleCity.Tanks
 
 		protected void OnEnable()
 		{
+			isMoving = false;
 			direction = this is Player ? Vector3.up : Vector3.down;
 			index = (transform.position * 2).ToVector3Int();
-			if (!Δarray[index.x][index.y]) Δarray[index.x][index.y] = this;
+			if (!array[index.x][index.y]) Δarray[index.x][index.y] = this;
 			else AddTankToArray();
 
 			#region Check Item
@@ -73,7 +69,7 @@ namespace BattleCity.Tanks
 				using var token = CancellationTokenSource.CreateLinkedTokenSource(Token, BattleField.Token);
 				while (!token.IsCancellationRequested && !isMoving)
 				{
-					if (!Δarray[index.x][index.y])
+					if (!array[index.x][index.y])
 					{
 						Δarray[index.x][index.y] = this;
 						return;
@@ -89,7 +85,7 @@ namespace BattleCity.Tanks
 		public CancellationToken Token => cts.Token;
 		protected void OnDisable()
 		{
-			if (this == Δarray[index.x][index.y]) Δarray[index.x][index.y] = null;
+			if (this == array[index.x][index.y]) Δarray[index.x][index.y] = null;
 			cts.Cancel();
 			cts.Dispose();
 			cts = new();
@@ -100,27 +96,25 @@ namespace BattleCity.Tanks
 		public bool CanMove(in Vector3 newDir)
 		{
 			var origin = transform.position;
-			var vectors = DIR_VECTORS[newDir];
-			for (int v = 0; v < vectors.Length; ++v)
+			foreach (var v in DIR_VECTORS[newDir])
 			{
-				var pos = origin + vectors[v];
+				var pos = origin + v;
 				if (array[(int)(pos.x * 2)][(int)(pos.y * 2)]) return false;
 				if (pos.ToVector3Int() != pos) continue;
 
 				var platform = Platform.array[(int)pos.x][(int)pos.y];
 				if (!platform) continue;
 
-				if (!platform.CanMove(this, newDir)) return false;
+				if (!platform.AllowMove(this, newDir)) return false;
 			}
 
 			return true;
 		}
 
+
 		private static readonly IReadOnlyDictionary<Vector3, ReadOnlyArray<Vector3>>
 			DIR_VECTORS = new Dictionary<Vector3, ReadOnlyArray<Vector3>>
 			{
-				// [...]= {vector0, vector1, vector2....}
-				// 3 first vectors (vector0, vector1, vector2) are used to check Tank vs Tank collision
 				[Vector3.up] = new(new Vector3[] { new(-0.5f, 1), new(0, 1), new(0.5f, 1), new(-0.5f, 0.5f), new(0.5f, 0.5f), new(0, 0.5f) }),
 				[Vector3.right] = new(new Vector3[] { new(1, 0.5f), new(1, 0), new(1, -0.5f), new(0.5f, 0.5f), new(0.5f, -0.5f), new(0.5f, 0) }),
 				[Vector3.down] = new(new Vector3[] { new(-0.5f, -1), new(0, -1), new(0.5f, -1), new(-0.5f, -0.5f), new(0.5f, -0.5f), new(0, -0.5f) }),
@@ -146,7 +140,7 @@ namespace BattleCity.Tanks
 			isMoving = true;
 
 			using var token = CancellationTokenSource.CreateLinkedTokenSource(Token, BattleField.Token);
-			if (this == Δarray[index.x][index.y]) Δarray[index.x][index.y] = null;
+			if (this == array[index.x][index.y]) Δarray[index.x][index.y] = null;
 			index += dir.ToVector3Int();
 			Δarray[index.x][index.y] = this;
 			dir *= moveSpeed;
@@ -157,11 +151,16 @@ namespace BattleCity.Tanks
 				await UniTask.Delay(delayMoving);
 				if (token.IsCancellationRequested)
 				{
-					if (this) animator.runtimeAnimatorController = null;
-					isMoving = false;
+					if (this)
+					{
+						animator.runtimeAnimatorController = null;
+						isMoving = false;
+					}
+
 					return;
 				}
 			}
+
 			transform.position = new(index.x * 0.5f, index.y * 0.5f);
 			animator.runtimeAnimatorController = null;
 
@@ -199,11 +198,14 @@ namespace BattleCity.Tanks
 			lastShootingTime = Time.time;
 			var data = new Bullet.Data
 			{
-				position = transform.position + direction * 0.5f,
+				origin = transform.position + direction * 0.5f,
 				direction = direction,
 				color = this is Player ? color : null,
-				count = bulletCount
+				count = bulletCount,
+				owner = this,
+				ownerToken = Token
 			};
+
 			AddBulletData(ref data);
 			return Bullet.New(data);
 		}

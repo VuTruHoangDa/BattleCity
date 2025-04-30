@@ -114,9 +114,8 @@ namespace BattleCity.Tanks
 		{
 			var token = BattleField.Token;
 			await UniTask.Delay(1000); // Animation
-			if (token.IsCancellationRequested) return null;
+			if (token.IsCancellationRequested || BattleField.enemyLifes == 0) return null;
 
-			if (BattleField.enemyLifes == 0) return null;
 			--BattleField.enemyLifes;
 			var enemy = pool.Get(Main.level.enemyIndexes[UnityEngine.Random.Range
 				(0, Main.level.enemyIndexes.Length)].ToVector3(), false);
@@ -127,6 +126,7 @@ namespace BattleCity.Tanks
 				--shipCount;
 				Item.New<Ship>().OnCollision(enemy);
 			}
+
 			enemy.gameObject.SetActive(true);
 			return enemy;
 		}
@@ -156,7 +156,7 @@ namespace BattleCity.Tanks
 		public int health;
 		public override bool OnCollision(Bullet bullet)
 		{
-			if (bullet.color == null) return false;
+			if (bullet.data.color == null) return false;
 
 			if (color == Color.Red) Item.New();
 			if (--health == 0) Explode();
@@ -165,11 +165,12 @@ namespace BattleCity.Tanks
 		}
 
 
-
 		public override async void Explode()
 		{
 			pool.Recycle(this);
+			var token = BattleField.Token;
 			await UniTask.Delay(1000);
+			if (token.IsCancellationRequested) return;
 
 			if (BattleField.enemyLifes != 0) New().Forget();
 			else if (enemies.Count == 0) BattleField.End();

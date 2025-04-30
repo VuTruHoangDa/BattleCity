@@ -98,7 +98,7 @@ namespace BattleCity.Platforms
 		}
 
 
-		public abstract bool CanMove(Tank tank, Vector3 newDir);
+		public abstract bool AllowMove(Tank tank, Vector3 newDir);
 
 
 		public static Platform New(int ID, in Vector3 position)

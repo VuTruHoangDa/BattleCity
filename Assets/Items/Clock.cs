@@ -68,6 +68,7 @@ namespace BattleCity.Items
 			while (!token.IsCancellationRequested && Time.time < playerStopTime);
 			if (token.IsCancellationRequested) return;
 
+			AI.SetActive<Player>(true);
 			if (!freezeEnemy.isRunning())
 			{
 				Destroy(workingClock.gameObject);

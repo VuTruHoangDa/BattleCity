@@ -16,7 +16,7 @@ namespace BattleCity.Tanks
 		private static ObjectPool<Bullet> pool;
 
 		private List<Bullet> getList =>
-			direction.x == 0 ? Xs[(int)(transform.position.x * 2)] : Ys[(int)(transform.position.y * 2)];
+			data.direction.x == 0 ? Xs[(int)(transform.position.x * 2)] : Ys[(int)(transform.position.y * 2)];
 
 
 		[RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
@@ -25,48 +25,40 @@ namespace BattleCity.Tanks
 			BattleField.onAwake += () =>
 			{
 				Xs = new List<Bullet>[Main.level.width * 2];
-				Ys = new List<Bullet>[Main.level.height * 2];
 				for (int x = 0; x < Xs.Length; ++x) Xs[x] = new();
+				Ys = new List<Bullet>[Main.level.height * 2];
 				for (int y = 0; y < Ys.Length; ++y) Ys[y] = new();
 				pool = new(Addressables.LoadAssetAsync<GameObject>("Assets/Tanks/Prefab/Bullet.prefab")
 					.WaitForCompletion().GetComponent<Bullet>());
+				sfx = new();
 			};
 		}
 
 
-		public Color? color { get; private set; }
-
-		public Vector3 direction { get; private set; }
-
 		[SerializeField] private float speed;
 		[SerializeField] private int delay;
-
-		public bool canBurnForest { get; private set; }
-
-		public bool canDestroySteel { get; private set; }
-
-		private ValueWrapper<int> count;
 		[SerializeField] private SerializableDictionaryBase<Vector3, Sprite> sprites;
 
 
 		public struct Data
 		{
-			public Vector3 position, direction;
+			public Vector3 origin, direction;
 			public Color? color;
 			public ValueWrapper<int> count;
 			public bool canBurnForest, canDestroySteel;
+			public Tank owner;
+			public CancellationToken ownerToken;
 		}
+
+		public Data data { get; private set; }
+
 
 		public static Bullet New(in Data data)
 		{
-			var bullet = pool.Get(data.position);
-			bullet.direction = data.direction;
+			var bullet = pool.Get(data.origin);
+			bullet.data = data;
 			bullet.GetComponent<SpriteRenderer>().sprite = bullet.sprites[data.direction];
 			bullet.getList.Add(bullet);
-			bullet.color = data.color;
-			bullet.count = data.count;
-			bullet.canBurnForest = data.canBurnForest;
-			bullet.canDestroySteel = data.canDestroySteel;
 			bullet.Move();
 			return bullet;
 		}
@@ -79,13 +71,14 @@ namespace BattleCity.Tanks
 			cts.Dispose();
 			cts = new();
 			getList.Remove(this);
-			--count.value;
+			--data.count.value;
 		}
 
 
 		public bool OnCollision(Bullet bullet)
 		{
-			if (color == null && bullet.color == null) return false;
+			if (data.color == null && bullet.data.color == null) return false;
+
 			pool.Recycle(this);
 			return true;
 		}
@@ -94,7 +87,8 @@ namespace BattleCity.Tanks
 		private static readonly List<Bullet> tmp = new();
 		private async void Move()
 		{
-			var dir = direction * speed;
+			var direction = data.direction;
+			var moveDir = direction * speed;
 			float count = 0.5f / speed;
 			int halfCount = (int)count / 2;
 			var vectors = DIR_VECTORS[direction];
@@ -105,9 +99,9 @@ namespace BattleCity.Tanks
 			while (true)
 			{
 				#region Check Platform
-				for (int v = 0; v < vectors.Length; ++v)
+				foreach (var v in vectors)
 				{
-					var pos = origin + vectors[v];
+					var pos = origin + v;
 					if (pos.ToVector3Int() != pos) continue;
 
 					var platform = Platform.array[(int)pos.x][(int)pos.y];
@@ -119,11 +113,13 @@ namespace BattleCity.Tanks
 				{
 					if (i == 0 || i == halfCount)
 						#region Check Tank
-						for (int v = 0; v < 3; ++v)
+						foreach (var v in vectors)
 						{
-							var pos = origin + vectors[v];
+							var pos = origin + v;
 							var tank = Tank.array[(int)(pos.x * 2)][(int)(pos.y * 2)];
-							if (tank && (tank.transform.position - transform.position).sqrMagnitude <= TANK_BULLET_DISTANCE)
+							if (!tank || (!data.ownerToken.IsCancellationRequested && tank == data.owner)) continue;
+
+							if ((tank.transform.position - transform.position).sqrMagnitude <= TANK_BULLET_DISTANCE)
 								stop |= tank.OnCollision(this);
 						}
 					#endregion
@@ -144,20 +140,23 @@ namespace BattleCity.Tanks
 
 					if (stop)
 					{
+						sfx.ShowExplosion(transform.position);
 						pool.Recycle(this);
 						return;
 					}
 
-					transform.position += dir;
+					transform.position += moveDir;
 					await UniTask.Delay(delay);
 					if (token.IsCancellationRequested) return;
 				}
+
 				transform.position = origin += direction * 0.5f;
 			}
 
 			List<Bullet> Perpendicular(in Vector3 pos) =>
 				direction.x == 0 ? Ys[(int)(pos.y * 2)] : Xs[(int)(pos.x * 2)];
 		}
+
 
 		private static readonly IReadOnlyDictionary<Vector3, ReadOnlyArray<Vector3>>
 			DIR_VECTORS = new Dictionary<Vector3, ReadOnlyArray<Vector3>>
@@ -170,6 +169,28 @@ namespace BattleCity.Tanks
 
 		private static readonly float TANK_BULLET_DISTANCE = Mathf.Pow(0.71f + 0.2f, 2),
 			BULLET_BULLET_DISTANCE = Mathf.Pow(0.2f * 2, 2);
+
+
+
+		private sealed class SFX
+		{
+			private readonly CancellationToken token = BattleField.Token;
+			private readonly ObjectPool<Transform> pool = new(
+				Addressables.LoadAssetAsync<GameObject>("Assets/Tanks/Prefab/Small Explosion.prefab")
+				.WaitForCompletion().GetComponent<Transform>());
+
+
+			public async void ShowExplosion(Vector3 position)
+			{
+				var explosion = pool.Get(position);
+				await UniTask.Delay(1000);
+				if (token.IsCancellationRequested) return;
+
+				pool.Recycle(explosion);
+			}
+		}
+
+		private static SFX sfx;
 	}
 
 

@@ -10,7 +10,7 @@ namespace BattleCity.Platforms
 		[SerializeField] private Particle particle;
 
 
-		public override bool CanMove(Tank tank, Vector3 newDir)
+		public override bool AllowMove(Tank tank, Vector3 newDir)
 			=> CanMove(tank.transform.position - transform.position, newDir, POINT_BLOCKS, particle);
 
 		private static readonly IReadOnlyDictionary<int, ReadOnlyArray<Vector2Int>>
@@ -29,10 +29,10 @@ namespace BattleCity.Platforms
 
 		public override bool OnCollision(Bullet bullet)
 		{
-			int id = BULLET_DIR_RELATIVE_BLOCK[bullet.direction]
+			int id = BULLET_DIR_RELATIVE_BLOCK[bullet.data.direction]
 				[bullet.transform.position - transform.position];
 
-			if (bullet.canDestroySteel)
+			if (bullet.data.canDestroySteel)
 			{
 				#region Bullet phá sắt thì va chạm như Steel
 				var block = POINT_BLOCKS[id];
@@ -47,7 +47,7 @@ namespace BattleCity.Platforms
 
 			#region Bullet phá từng lớp gạch
 			var (Xmin, Xmax, Ymin, Ymax) = RANGE_BLOCKS[id];
-			var d = bullet.direction;
+			var d = bullet.data.direction;
 
 			return d.x == 0 ?
 				 // Up, Down

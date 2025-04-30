@@ -90,7 +90,7 @@ namespace BattleCity.Tanks
 				var dir = vectors[Random.Range(0, vectors.Count)];
 				vectors.Add(lastDir);
 				vectors.Remove(lastDir = dir);
-				tank.direction = dir;
+				tank.direction = dir; // có bug: Move khi isMoving==true
 				CheckShoot();
 				if (!tank.CanMove(dir))
 				{

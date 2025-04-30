@@ -10,7 +10,7 @@ namespace BattleCity.Platforms
 		[SerializeField]
 		private Particle particle;
 
-		public override bool CanMove(Tank tank, Vector3 newDir)
+		public override bool AllowMove(Tank tank, Vector3 newDir)
 			=> CanMove(tank.transform.position - transform.position, newDir, BLOCKS, particle);
 
 
@@ -30,15 +30,15 @@ namespace BattleCity.Platforms
 
 		public override bool OnCollision(Bullet bullet)
 		{
-			var block = BLOCKS[BULLET_DIR_RELATIVE_BLOCK[bullet.direction]
+			var block = BLOCKS[BULLET_DIR_RELATIVE_BLOCK[bullet.data.direction]
 				[bullet.transform.position - transform.position]];
 			bool hideBullet = false;
 			for (int b = 0; b < block.Length; ++b)
 				hideBullet |= (
-					bullet.canDestroySteel ? particle.Destroy(block[b].x, block[b].y)
+					bullet.data.canDestroySteel ? particle.Destroy(block[b].x, block[b].y)
 					: particle[block[b].x, block[b].y]);
 
-			if (bullet.canDestroySteel && hideBullet && particle.isEmpty) Destroy(gameObject);
+			if (bullet.data.canDestroySteel && hideBullet && particle.isEmpty) Destroy(gameObject);
 			return hideBullet;
 		}
 	}

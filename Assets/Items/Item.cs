@@ -33,7 +33,8 @@ namespace BattleCity.Items
 			new (-1,0), default, new(1,0),
 			new(-1,-1), new(0,-1), new(1,-1)
 		});
-		public static Item New()
+
+		public static void New()
 		{
 			if (current) Destroy(current.gameObject);
 			var origin = new Vector2Int(
@@ -55,8 +56,6 @@ namespace BattleCity.Items
 
 			if (tmp.Count != 0) current.OnCollision(tmp[Random.Range(0, tmp.Count)]);
 			#endregion
-
-			return current;
 		}
 
 

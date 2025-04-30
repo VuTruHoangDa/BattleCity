@@ -18,9 +18,8 @@ namespace BattleCity.Tanks
 		private static void Init()
 		{
 			var dict = players as Dictionary<Color, Player>;
-			var anchor = new GameObject().transform;
+			var anchor = new GameObject { name = "Players" }.transform;
 			anchor.gameObject.SetActive(false);
-			anchor.name = "Players";
 			DontDestroyOnLoad(anchor);
 			foreach (var color in new Color[] { Color.Green, Color.Yellow })
 			{
@@ -30,6 +29,7 @@ namespace BattleCity.Tanks
 				player.name = color.ToString();
 				player.color = color;
 			}
+
 			anchor.gameObject.SetActive(true);
 		}
 
@@ -40,8 +40,7 @@ namespace BattleCity.Tanks
 			await UniTask.Delay(1000); // Animation
 			if (token.IsCancellationRequested) return null;
 
-			if (BattleField.count == 1) goto CHECK_LIFE;
-			if (players[color].isExploded) goto CHECK_LIFE;
+			if (BattleField.count == 1 || players[color].isExploded) goto CHECK_LIFE;
 			goto SPAWN_PLAYER;
 
 		CHECK_LIFE:
@@ -50,6 +49,7 @@ namespace BattleCity.Tanks
 				--BattleField.playerLifes[color];
 				goto SPAWN_PLAYER;
 			}
+
 			if (!borrowLife) return null;
 
 			// Kiểm tra đồng đội còn mạng không để mượn mạng
@@ -59,6 +59,7 @@ namespace BattleCity.Tanks
 				--BattleField.playerLifes[allyColor];
 				goto SPAWN_PLAYER;
 			}
+
 			return null;
 
 		SPAWN_PLAYER:
@@ -141,7 +142,7 @@ namespace BattleCity.Tanks
 		{
 			if (helmet) return true;
 
-			if (bullet.color != null)
+			if (bullet.data.color != null)
 			{
 				// Player bullet
 				if (!Setting.playerCanFreezePlayer) return false;
@@ -194,17 +195,18 @@ namespace BattleCity.Tanks
 		public bool isExploded { get; private set; }
 		public override async void Explode()
 		{
-			star = 0;
-			spriteRenderer.sprite = sprites[star][color][direction];
+			isExploded = true;
+			spriteRenderer.sprite = sprites[star = 0][color][direction];
 			gameObject.SetActive(false);
 
 			// Animation
 
+			var token = BattleField.Token;
 			await UniTask.Delay(1000);
+			if (token.IsCancellationRequested) return;
 
-			if (BattleField.playerLifes[color] != 0
-				|| BattleField.playerLifes[3 - color] != 0) New(color).Forget();
-			else if (!players[3 - color].gameObject.activeSelf) BattleField.End();
+			if (BattleField.playerLifes[color] != 0) New(color).Forget();
+			else if (BattleField.playerLifes[3 - color] == 0 && !players[3 - color].gameObject.activeSelf) BattleField.End();
 		}
 
 

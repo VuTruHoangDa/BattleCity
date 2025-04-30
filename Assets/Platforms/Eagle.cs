@@ -21,7 +21,7 @@ namespace BattleCity.Platforms
 		}
 
 
-		public override bool CanMove(Tank tank, Vector3 newDir) => false;
+		public override bool AllowMove(Tank tank, Vector3 newDir) => false;
 
 
 		[SerializeField] private SpriteRenderer spriteRenderer;
