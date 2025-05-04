@@ -54,6 +54,7 @@ namespace BattleCity.Tanks
 		{
 			isMoving = false;
 			direction = this is Player ? Vector3.up : Vector3.down;
+			animator.runtimeAnimatorController = null;
 			index = (transform.position * 2).ToVector3Int();
 			if (!array[index.x][index.y]) Δarray[index.x][index.y] = this;
 			else AddTankToArray();
@@ -93,8 +94,9 @@ namespace BattleCity.Tanks
 
 
 		#region CanMove
-		public bool CanMove(in Vector3 newDir)
+		public bool CanMove(Vector3 newDir = default)
 		{
+			newDir = newDir == default ? direction : newDir;
 			var origin = transform.position;
 			foreach (var v in DIR_VECTORS[newDir])
 			{
@@ -133,32 +135,20 @@ namespace BattleCity.Tanks
 		private Vector3Int index;
 		protected abstract RuntimeAnimatorController anim { get; }
 
-		public async UniTask Move(Vector3 dir)
+		public async UniTask Move()
 		{
-			direction = dir;
-			if (isMoving) throw new Exception();
 			isMoving = true;
-
 			using var token = CancellationTokenSource.CreateLinkedTokenSource(Token, BattleField.Token);
 			if (this == array[index.x][index.y]) Δarray[index.x][index.y] = null;
-			index += dir.ToVector3Int();
+			index += direction.ToVector3Int();
 			Δarray[index.x][index.y] = this;
-			dir *= moveSpeed;
+			var moveDir = direction * moveSpeed;
 			animator.runtimeAnimatorController = anim;
 			for (float i = 0.5f / moveSpeed; i > 0; --i)
 			{
-				transform.position += dir;
+				transform.position += moveDir;
 				await UniTask.Delay(delayMoving);
-				if (token.IsCancellationRequested)
-				{
-					if (this)
-					{
-						animator.runtimeAnimatorController = null;
-						isMoving = false;
-					}
-
-					return;
-				}
+				if (token.IsCancellationRequested) return;
 			}
 
 			transform.position = new(index.x * 0.5f, index.y * 0.5f);
@@ -216,6 +206,7 @@ namespace BattleCity.Tanks
 
 
 		public abstract bool OnCollision(Bullet bullet);
+
 
 		public abstract void Explode();
 	}

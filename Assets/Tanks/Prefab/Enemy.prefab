@@ -47,12 +47,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1e1af0335ca7e8b44a2b0a49a0c3e0a5, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  asset: {fileID: 11400000, guid: d1154ab3e81ce364c98c73e5387e356b, type: 2}
   ship: {fileID: 0}
   spriteRenderer: {fileID: 8329736824220358606}
   animator: {fileID: 3041620526362212051}
+  asset: {fileID: 11400000, guid: d1154ab3e81ce364c98c73e5387e356b, type: 2}
   moveSpeed: 0.05
-  delayMoving: 16
+  delayMoving: 20
   delayShooting: 1
   maxBullets: 1
   sprites:
@@ -1565,6 +1565,7 @@ SpriteRenderer:
   m_RayTraceProcedural: 0
   m_RayTracingAccelStructBuildFlagsOverride: 0
   m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:

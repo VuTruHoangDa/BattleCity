@@ -1,5 +1,4 @@
 ﻿using Cysharp.Threading.Tasks;
-using System;
 using System.Collections.Generic;
 using System.Threading;
 using UnityEngine;
@@ -53,24 +52,12 @@ namespace BattleCity.Tanks
 			[true] = new(),
 			[false] = new()
 		};
+
 		public static void SetActive<T>(bool value) where T : Tank
 		{
 			bool isPlayer = typeof(T) == typeof(Player);
-			if (isPlayer)
-				foreach (var ai in dict[isPlayer])
-				{
-					if (!ai.gameObject.activeSelf) continue;
-
-					ai.cts.Cancel();
-					ai.cts.Dispose();
-					ai.cts = new();
-					if (value) ai.MoveAndShoot(); else ai.AutoShoot();
-				}
-			else
-			{
-				enableEnemy = value;
-				foreach (var ai in dict[isPlayer]) ai.enabled = value;
-			}
+			if (!isPlayer) enableEnemy = value;
+			foreach (var ai in dict[isPlayer]) ai.enabled = value;
 		}
 
 
@@ -90,7 +77,7 @@ namespace BattleCity.Tanks
 				var dir = vectors[Random.Range(0, vectors.Count)];
 				vectors.Add(lastDir);
 				vectors.Remove(lastDir = dir);
-				tank.direction = dir; // có bug: Move khi isMoving==true
+				tank.direction = dir;
 				CheckShoot();
 				if (!tank.CanMove(dir))
 				{
@@ -101,8 +88,12 @@ namespace BattleCity.Tanks
 
 				for (int i = Random.Range(1, 21); i > 0; --i)
 				{
-					await tank.Move(dir);
+					await tank.Move();
 					if (token.IsCancellationRequested) return;
+
+					if (tank.isMoving)
+						throw new System.Exception();
+
 					CheckShoot();
 					if (!tank.CanMove(dir))
 					{
@@ -121,9 +112,9 @@ namespace BattleCity.Tanks
 		}
 
 
-		private async void AutoShoot()
+		private async void StandShoot()
 		{
-			using var token = CancellationTokenSource.CreateLinkedTokenSource(cts.Token, tank.Token, BattleField.Token);
+			using var token = CancellationTokenSource.CreateLinkedTokenSource(cts.Token, BattleField.Token);
 
 		}
 	}

@@ -26,7 +26,7 @@ namespace BattleCity
 			using var reader = new StringReader(data);
 			string[] words;
 
-			#region playerPositions
+			#region playerIndexes
 			words = reader.ReadLine().Split(' ');
 			var dict = new Dictionary<Color, Vector2Int>();
 			playerIndexes = dict;
@@ -34,7 +34,7 @@ namespace BattleCity
 				dict[(Color)n(i)] = new(n(i + 1), n(i + 2));
 			#endregion
 
-			#region enemyPositions
+			#region enemyIndexes
 			words = reader.ReadLine().Split(' ');
 			var e = new Vector2Int[words.Length / 2];
 			enemyIndexes = new(e);
@@ -65,6 +65,9 @@ namespace BattleCity
 			}
 
 			platforms = new(array);
+#if DEBUG
+			if (width < 5 || height < 5) throw new ArgumentOutOfRangeException();
+#endif
 			#endregion
 
 			int n(int i) => Convert.ToInt32(words[i]);

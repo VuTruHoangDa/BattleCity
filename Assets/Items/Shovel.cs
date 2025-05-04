@@ -72,8 +72,9 @@ namespace BattleCity.Items
 				if (this)
 				{
 					Destroy(gameObject);
-					if (workingShovel == this) workingShovel = null;
+					if (this == workingShovel) workingShovel = null;
 				}
+
 				return;
 			}
 

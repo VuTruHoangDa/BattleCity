@@ -33,7 +33,6 @@ namespace BattleCity
 			++count;
 			cts.Dispose();
 			cts = new();
-			Platform.LoadLevel(Main.level);
 			Camera.main.transform.position = new Vector3(Main.level.width / 2f, Main.level.height / 2f, -10f);
 			Camera.main.orthographicSize = Main.level.height / 2f;
 			// Đăng ký nút bấm gamepad: người chơi nhấn nút mượn mạng khi đã chết
@@ -44,7 +43,7 @@ namespace BattleCity
 		private static bool twoPlayers;
 		private async void Start()
 		{
-			await UniTask.Yield();
+			await Platform.LoadLevel(Main.level);
 
 			// Sinh Enemy
 			enemyLifes = 255;
@@ -56,6 +55,7 @@ namespace BattleCity
 				playerLifes[Color.Yellow] = playerLifes[Color.Green] = 255;
 				twoPlayers = Main.mouseIndex != Main.ONE_PLAYER;
 			}
+
 			Player.New(Color.Yellow).Forget();
 			if (twoPlayers) Player.New(Color.Green).Forget();
 		}

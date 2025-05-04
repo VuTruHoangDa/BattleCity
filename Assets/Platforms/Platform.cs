@@ -1,4 +1,5 @@
 ﻿using BattleCity.Tanks;
+using Cysharp.Threading.Tasks;
 using System;
 using System.Collections.Generic;
 using UnityEngine;
@@ -44,12 +45,18 @@ namespace BattleCity.Platforms
 			[23] = nameof(Sand),
 		};
 		private static Transform anchor;
-		public static void LoadLevel(Level level)
+		public static async UniTask LoadLevel(Level level)
 		{
 			anchor = new GameObject().transform;
 			anchor.name = "Platforms";
-			array = Util.NewReadOnlyArray(level.width, level.height, out Δarray,
-				(x, y) => New(level.platforms[x][y], new(x, y)));
+			array = Util.NewReadOnlyArray(level.width, level.height, out Δarray);
+			int count = 0;
+			for (int x = 0; x < level.width; ++x)
+				for (int y = 0; y < level.height; ++y)
+				{
+					if (++count % 10 == 0) await UniTask.Yield();
+					Δarray[x][y] = New(level.platforms[x][y], new(x, y));
+				}
 		}
 
 

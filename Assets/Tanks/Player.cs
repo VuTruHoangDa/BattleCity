@@ -105,13 +105,8 @@ namespace BattleCity.Tanks
 		public override Vector3 direction
 		{
 			get => Δdirection;
-
-			set
-			{
-				Δdirection = isMoving ? throw new Exception() : value;
-				spriteRenderer.sprite = star == 3 ? asset.gunSprites[color][direction]
+			set => spriteRenderer.sprite = star == 3 ? asset.gunSprites[color][Δdirection = value]
 					: sprites[star][color][direction];
-			}
 		}
 
 
@@ -217,9 +212,17 @@ namespace BattleCity.Tanks
 		}
 
 
+		private AI ai;
+		private void Start()
+		{
+			ai = GetComponent<AI>();
+		}
+
 		bool s;
 		private void Update()
 		{
+			if (ai) return;
+
 			Vector3 newDir = default;
 
 			if (color == Color.Yellow)
@@ -240,7 +243,7 @@ namespace BattleCity.Tanks
 			if (!isMoving && newDir != default)
 			{
 				if (direction != newDir) direction = newDir;
-				else if (CanMove(newDir)) Move(newDir).ContinueWith(() =>
+				else if (CanMove()) Move().ContinueWith(() =>
 				{
 					if (s)
 					{

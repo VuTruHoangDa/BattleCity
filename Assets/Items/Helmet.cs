@@ -40,6 +40,7 @@ namespace BattleCity.Items
 			transform.parent = player.transform;
 			transform.localPosition = default;
 			GetComponent<Animator>().runtimeAnimatorController = anims[player.color];
+			GetComponent<SpriteRenderer>().sortingLayerName = "Tank";
 			player.helmet = this;
 			stopTime = Time.time + delay;
 

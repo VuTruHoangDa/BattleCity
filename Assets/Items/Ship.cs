@@ -30,6 +30,7 @@ namespace BattleCity.Items
 			transform.localPosition = default;
 			GetComponent<Animator>().enabled = false;
 			spriteRenderer.enabled = true;
+			spriteRenderer.sortingLayerName = "Tank";
 			ChangeColor(tank.color);
 		}
 
