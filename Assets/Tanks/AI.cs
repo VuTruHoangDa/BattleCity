@@ -30,6 +30,12 @@ namespace BattleCity.Tanks
 		}
 
 
+		private void OnDestroy()
+		{
+			dict[isPlayer].Remove(this);
+		}
+
+
 		private static bool enableEnemy;
 		private void OnEnable()
 		{
@@ -79,7 +85,7 @@ namespace BattleCity.Tanks
 				vectors.Remove(lastDir = dir);
 				tank.direction = dir;
 				CheckShoot();
-				if (!tank.CanMove(dir))
+				if (!tank.CanMove())
 				{
 					await UniTask.Delay(DELAY);
 					if (token.IsCancellationRequested) return;
@@ -90,12 +96,8 @@ namespace BattleCity.Tanks
 				{
 					await tank.Move();
 					if (token.IsCancellationRequested) return;
-
-					if (tank.isMoving)
-						throw new System.Exception();
-
 					CheckShoot();
-					if (!tank.CanMove(dir))
+					if (!tank.CanMove())
 					{
 						await UniTask.Delay(DELAY);
 						if (token.IsCancellationRequested) return;

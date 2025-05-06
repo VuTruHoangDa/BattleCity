@@ -105,8 +105,12 @@ namespace BattleCity.Tanks
 		public override Vector3 direction
 		{
 			get => Δdirection;
-			set => spriteRenderer.sprite = star == 3 ? asset.gunSprites[color][Δdirection = value]
+			set
+			{
+				Δdirection = value;
+				spriteRenderer.sprite = star == 3 ? asset.gunSprites[color][Δdirection = value]
 					: sprites[star][color][direction];
+			}
 		}
 
 
@@ -221,23 +225,21 @@ namespace BattleCity.Tanks
 		bool s;
 		private void Update()
 		{
-			if (ai) return;
-
 			Vector3 newDir = default;
 
 			if (color == Color.Yellow)
 			{
-				if (Input.GetKey(KeyCode.UpArrow)) newDir = Vector3.up;
-				else if (Input.GetKey(KeyCode.RightArrow)) newDir = Vector3.right;
-				else if (Input.GetKey(KeyCode.DownArrow)) newDir = Vector3.down;
-				else if (Input.GetKey(KeyCode.LeftArrow)) newDir = Vector3.left;
+				if (Input.GetKey(KeyCode.UpArrow)) Check(Vector3.up);
+				else if (Input.GetKey(KeyCode.RightArrow)) Check(Vector3.right);
+				else if (Input.GetKey(KeyCode.DownArrow)) Check(Vector3.down);
+				else if (Input.GetKey(KeyCode.LeftArrow)) Check(Vector3.left);
 			}
 			else
 			{
-				if (Input.GetKey(KeyCode.W)) newDir = Vector3.up;
-				else if (Input.GetKey(KeyCode.D)) newDir = Vector3.right;
-				else if (Input.GetKey(KeyCode.S)) newDir = Vector3.down;
-				else if (Input.GetKey(KeyCode.A)) newDir = Vector3.left;
+				if (Input.GetKey(KeyCode.W)) Check(Vector3.up);
+				else if (Input.GetKey(KeyCode.D)) Check(Vector3.right);
+				else if (Input.GetKey(KeyCode.S)) Check(Vector3.down);
+				else if (Input.GetKey(KeyCode.A)) Check(Vector3.left);
 			}
 
 			if (!isMoving && newDir != default)
@@ -258,6 +260,13 @@ namespace BattleCity.Tanks
 			{
 				if (!isMoving) Shoot();
 				else s = true;
+			}
+
+
+			void Check(in Vector3 dir)
+			{
+				newDir = dir;
+				if (ai) Destroy(ai);
 			}
 		}
 	}

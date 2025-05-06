@@ -137,6 +137,9 @@ namespace BattleCity.Tanks
 
 		public async UniTask Move()
 		{
+#if DEBUG
+			if (isMoving) throw new Exception("Khong the Move khi dang move !");
+#endif
 			isMoving = true;
 			using var token = CancellationTokenSource.CreateLinkedTokenSource(Token, BattleField.Token);
 			if (this == array[index.x][index.y]) Δarray[index.x][index.y] = null;

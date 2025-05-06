@@ -1,13 +1,42 @@
-using Cysharp.Threading.Tasks;
+using BattleCity;
 using UnityEngine;
 
 
-public class Test : MonoBehaviour
+public class Test : MonoBehaviour, IGamepad
 {
-	public GameObject obj;
-	private async void Start()
+	private void Start()
 	{
-		await UniTask.Delay(2000);
-		obj.SetActive(true);
+		Gamepad.Add(BattleCity.Color.Yellow, this);
+
+	}
+
+
+	public void ButtonDpad(Vector3 direction, bool press)
+	{
+		print($"dpad( {direction}, {press} )");
+	}
+
+
+	public void ButtonSelect()
+	{
+		print("select");
+	}
+
+
+	public void ButtonShoot()
+	{
+		print("shoot");
+	}
+
+
+	public void ButtonShoot(bool press)
+	{
+		print($"shoot( {press} )");
+	}
+
+
+	public void ButtonStart()
+	{
+		print("start");
 	}
 }
