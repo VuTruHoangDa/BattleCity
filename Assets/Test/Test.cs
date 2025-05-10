@@ -6,7 +6,8 @@ public class Test : MonoBehaviour, IGamepad
 {
 	private void Start()
 	{
-		Gamepad.Add(BattleCity.Color.Yellow, this);
+		//Gamepad.Add(BattleCity.Color.Yellow, this);
+
 
 	}
 
@@ -38,5 +39,14 @@ public class Test : MonoBehaviour, IGamepad
 	public void ButtonStart()
 	{
 		print("start");
+	}
+
+
+	private void Update()
+	{
+		var g = UnityEngine.InputSystem.Gamepad.current;
+		if (g == null) return;
+
+		print(g.aButton.isPressed);
 	}
 }

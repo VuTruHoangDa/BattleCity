@@ -4,13 +4,14 @@ using Cysharp.Threading.Tasks;
 using RotaryHeart.Lib.SerializableDictionary;
 using System;
 using System.Collections.Generic;
+using System.Threading;
 using UnityEngine;
 using UnityEngine.AddressableAssets;
 
 
 namespace BattleCity.Tanks
 {
-	public sealed class Player : Tank
+	public sealed class Player : Tank, IGamepad
 	{
 		public static readonly IReadOnlyDictionary<Color, Player> players = new Dictionary<Color, Player>();
 
@@ -186,11 +187,17 @@ namespace BattleCity.Tanks
 			isExploded = false;
 			helmet = null;
 			Item.New<Helmet>().OnCollision(this);
-
-			// Đăng ký input move và shoot
+			if (!GetComponent<AI>()) Gamepad.Add(color, this);
 		}
 
 
+		private new void OnDisable()
+		{ 
+			Gamepad.Remove(color, this);
+			base.OnDisable();
+		}
+
+		
 		public bool isExploded { get; private set; }
 		public override async void Explode()
 		{
@@ -216,58 +223,76 @@ namespace BattleCity.Tanks
 		}
 
 
-		private AI ai;
-		private void Start()
+		#region Gamepad
+		private Vector3 moveRequest;
+		public void ButtonDpad(Vector3 direction, bool press)
 		{
-			ai = GetComponent<AI>();
+			moveRequest = press ? direction : default;
+			if (press && !task.isRunning()) task = Task();
 		}
 
-		bool s;
-		private void Update()
+
+		private bool shootRequest;
+		public void ButtonShoot()
 		{
-			Vector3 newDir = default;
-
-			if (color == Color.Yellow)
+			if (!isMoving)
 			{
-				if (Input.GetKey(KeyCode.UpArrow)) Check(Vector3.up);
-				else if (Input.GetKey(KeyCode.RightArrow)) Check(Vector3.right);
-				else if (Input.GetKey(KeyCode.DownArrow)) Check(Vector3.down);
-				else if (Input.GetKey(KeyCode.LeftArrow)) Check(Vector3.left);
-			}
-			else
-			{
-				if (Input.GetKey(KeyCode.W)) Check(Vector3.up);
-				else if (Input.GetKey(KeyCode.D)) Check(Vector3.right);
-				else if (Input.GetKey(KeyCode.S)) Check(Vector3.down);
-				else if (Input.GetKey(KeyCode.A)) Check(Vector3.left);
+				Shoot();
+				return;
 			}
 
-			if (!isMoving && newDir != default)
+			shootRequest = true;
+			if (!task.isRunning()) task = Task();
+		}
+
+
+		private bool shootContinousRequest;
+		public void ButtonShoot(bool press)
+		{
+			shootContinousRequest = press;
+			if (press && !task.isRunning()) task = Task();
+		}
+
+
+		public void ButtonSelect()
+		{
+		}
+
+
+		public void ButtonStart()
+		{
+		}
+
+
+		private UniTask task = UniTask.CompletedTask;
+		private async UniTask Task()
+		{
+			using var token = CancellationTokenSource.CreateLinkedTokenSource(Token, BattleField.Token);
+
+			while (!token.IsCancellationRequested &&
+				(moveRequest != default || shootContinousRequest || shootRequest))
 			{
-				if (direction != newDir) direction = newDir;
-				else if (CanMove()) Move().ContinueWith(() =>
+				if (shootContinousRequest) Shoot();
+				else if (shootRequest)
 				{
-					if (s)
+					shootRequest = false;
+					Shoot();
+				}
+
+				if (moveRequest != default)
+				{
+					if (direction != moveRequest)
 					{
-						s = false;
-						Shoot();
+						direction = moveRequest;
+						await UniTask.DelayFrame(5);
+						continue;
 					}
-				});
-			}
 
-			if ((color == Color.Yellow && Input.GetKey(KeyCode.RightAlt))
-				|| (color == Color.Green && Input.GetKey(KeyCode.LeftAlt)))
-			{
-				if (!isMoving) Shoot();
-				else s = true;
-			}
-
-
-			void Check(in Vector3 dir)
-			{
-				newDir = dir;
-				if (ai) Destroy(ai);
+					if (CanMove()) await Move(); else await UniTask.Yield();
+				}
+				else await UniTask.Yield();
 			}
 		}
+		#endregion
 	}
 }

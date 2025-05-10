@@ -1,5 +1,4 @@
 ﻿using System.Collections.Generic;
-using System.Runtime.CompilerServices;
 using UnityEngine;
 using G = UnityEngine.InputSystem.Gamepad;
 
@@ -45,16 +44,22 @@ namespace BattleCity
 
 		private readonly IReadOnlyList<IGamepad> listeners = new List<IGamepad>();
 
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void Add(Color color, IGamepad listener) => (gamepads[color].listeners as List<IGamepad>).Add(listener);
+		public static void Add(Color color, IGamepad listener)
+		{
+			var listeners = gamepads[color].listeners as List<IGamepad>;
+			if (!listeners.Contains(listener)) listeners.Add(listener);
+		}
 
 
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void Remove(Color color, IGamepad listener) => (gamepads[color].listeners as List<IGamepad>).Remove(listener);
+		public static void Remove(Color color, IGamepad listener)
+		{
+			var listeners = gamepads[color].listeners as List<IGamepad>;
+			if (listeners.Contains(listener)) listeners.Remove(listener);
+		}
 
 
 		private G g;
-		private bool pressX, pressY, shootContinous;
+		private bool shootContinous;
 
 		private void Update()
 		{
@@ -159,12 +164,7 @@ namespace BattleCity
 					foreach (var listener in listeners) listener.ButtonShoot();
 
 				// Bắn liên tục
-				if (g.xButton.wasPressedThisFrame) pressX = true;
-				else if (g.xButton.wasReleasedThisFrame) pressX = false;
-
-				if (g.yButton.wasPressedThisFrame) pressY = true;
-				else if (g.yButton.wasReleasedThisFrame) pressY = false;
-
+				bool pressX = g.xButton.isPressed, pressY = g.yButton.isPressed;
 				if (shootContinous)
 				{
 					if (!pressX && !pressY)
@@ -195,6 +195,8 @@ namespace BattleCity
 		private readonly List<Vector3> dpads = new();
 		private void PressDpad(Vector3 dir)
 		{
+			if (dpads.Contains(dir)) return;
+
 			dpads.Add(dir);
 			foreach (var listener in listeners) listener.ButtonDpad(dir, true);
 		}
@@ -202,12 +204,23 @@ namespace BattleCity
 
 		private void ReleaseDpad(Vector3 dir)
 		{
+			if (!dpads.Contains(dir)) return;
+
 			var last = dpads[^1];
 			dpads.Remove(dir);
 			if (dir != last) return;
 
 			foreach (var listener in listeners) listener.ButtonDpad(dir, false);
 			if (dpads.Count > 0) foreach (var listener in listeners) listener.ButtonDpad(dpads[^1], true);
+		}
+
+
+		public static void Rumble(Color color, float x, float y)
+		{
+			var g = gamepads[color].g;
+			if (g == null) return;
+
+			g.SetMotorSpeeds(x, y);
 		}
 	}
 }
